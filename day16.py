@@ -1,4 +1,5 @@
 from collections import defaultdict
+from functools import cache
 from heapq import heappush, heappop
 from itertools import product
 from pprint import pprint
@@ -17,22 +18,13 @@ for v, f, W in findall(R, stdin.read()):
 for k, i, j in product(V, V, V):    # floyd-warshall
 	D[i,j] = min(D[i,j], D[i,k] + D[k,j])
 # 20*24+21*23+35*19+2*17+3*15
-H, P = [(0, "AA", "AA", 26, 26, ())], 0
-while H:
-	p, vy, ve, my, me, o = heappop(H)
-	m = max(my, me) - 1
-	# if upper bound is greater than best pressure found so far
-	if P <= -p + sum((m - i) * f for i, f in enumerate(sorted((f for v, f in F.items() if v not in o), reverse=True)) if m > i):
-		if my >= me: # You move first if more remaining time
-			for v, f in F.items():
-				m = my - D[vy, v] - 1
-				if v not in o and m > 0:
-					P = max(P, -p + m * f)
-					heappush(H, (p - m * f, v, ve, m, me, o + (v,)))
-		else: # otherwise elephant moves first
-			for v, f in F.items():
-				m = me - D[ve, v] - 1
-				if v not in o and m > 0:
-					P = max(P, -p + m * f)
-					heappush(H, (p - m * f, vy, v, my, m, o + (v,)))
-print(P)
+@cache
+def part1(v, c, m):
+	return max((F[w] * (m - D[v, w] - 1) + part1(w, c - {w}, m - D[v, w] - 1)
+		for w in c if m - D[v, w] > 1), default=0)
+print(part1("AA", frozenset(F), 30))
+@cache
+def part2(v, c, m):
+	return max([F[w] * (m - D[v, w] - 1) + part2(w, c - {w}, m - D[v, w] - 1)
+		for w in c if m - D[v, w] > 1] + [part1("AA", c, 26)])
+print(part2("AA", frozenset(F), 26))
